@@ -5,6 +5,8 @@ import csv
 import os
 import uuid
 import requests
+import json
+import time
 
 from datetime import datetime, timezone
 
@@ -21,6 +23,14 @@ TELEGRAM_CHAT_ID = os.getenv(
 )
 
 # --------------------------------
+# FILES
+# --------------------------------
+
+SIGNALS_FILE = "signals.csv"
+
+LAST_SIGNALS_FILE = "last_signals.json"
+
+# --------------------------------
 # PAIRS
 # --------------------------------
 
@@ -29,6 +39,65 @@ PAIRS = [
     "GBPUSD=X",
     "USDJPY=X"
 ]
+
+# --------------------------------
+# COOLDOWN SYSTEM
+# --------------------------------
+
+def can_send_signal(pair, signal):
+
+    if not os.path.exists(
+        LAST_SIGNALS_FILE
+    ):
+
+        with open(
+            LAST_SIGNALS_FILE,
+            "w"
+        ) as f:
+
+            json.dump({}, f)
+
+    try:
+
+        with open(
+            LAST_SIGNALS_FILE,
+            "r"
+        ) as f:
+
+            data = json.load(f)
+
+    except:
+
+        data = {}
+
+    now = time.time()
+
+    key = f"{pair}_{signal}"
+
+    if key in data:
+
+        last_time = data[key]
+
+        # 30 minute cooldown
+        if now - last_time < 1800:
+
+            print(
+                f"COOLDOWN ACTIVE: "
+                f"{pair} {signal}"
+            )
+
+            return False
+
+    data[key] = now
+
+    with open(
+        LAST_SIGNALS_FILE,
+        "w"
+    ) as f:
+
+        json.dump(data, f)
+
+    return True
 
 # --------------------------------
 # MARKET SESSION
@@ -59,12 +128,15 @@ def send_telegram_alert(signal):
         not TELEGRAM_BOT_TOKEN
         or not TELEGRAM_CHAT_ID
     ):
+        print(
+            "TELEGRAM VARIABLES MISSING"
+        )
         return
 
     try:
 
         message = f"""
-🚨 Forex AI Radar Alert
+🚨 FOREX AI RADAR ALERT 🚨
 
 Pair: {signal['pair']}
 
@@ -72,7 +144,7 @@ Signal: {signal['signal']}
 
 Bias: {signal['bias']}
 
-Quality: {signal['setup_quality']}
+Setup Quality: {signal['setup_quality']}
 
 Score: {signal['setup_score']}
 
@@ -84,29 +156,34 @@ TP: {signal['tp']}
 
 RR: {signal['rr']}
 
-Reason: {signal['execution_reason']}
+Session: {signal['market_session']}
+
+RSI: {signal['rsi']}
 """
 
         url = (
-            f"https://api.telegram.org/bot"
-            f"{TELEGRAM_BOT_TOKEN}/sendMessage"
+            f"https://api.telegram.org/"
+            f"bot{TELEGRAM_BOT_TOKEN}"
+            f"/sendMessage"
         )
 
         payload = {
-            "chat_id": TELEGRAM_CHAT_ID,
-            "text": message
+            "chat_id":
+                TELEGRAM_CHAT_ID,
+
+            "text":
+                message
         }
 
-        requests.post(
+        response = requests.post(
             url,
-            data=payload,
+            json=payload,
             timeout=10
         )
 
         print(
-            f"TELEGRAM SENT: "
-            f"{signal['pair']} "
-            f"{signal['signal']}"
+            "TELEGRAM STATUS:",
+            response.status_code
         )
 
     except Exception as e:
@@ -117,23 +194,19 @@ Reason: {signal['execution_reason']}
         )
 
 # --------------------------------
-# SCAN MARKETS
+# MAIN SCANNER
 # --------------------------------
 
 def scan_markets():
 
     results = []
 
-    # --------------------------------
-    # CSV SETUP
-    # --------------------------------
-
     file_exists = os.path.isfile(
-        "signals.csv"
+        SIGNALS_FILE
     )
 
     with open(
-        "signals.csv",
+        SIGNALS_FILE,
         mode="a",
         newline="",
         encoding="utf-8"
@@ -142,7 +215,7 @@ def scan_markets():
         writer = csv.writer(file)
 
         # --------------------------------
-        # HEADERS
+        # CSV HEADERS
         # --------------------------------
 
         if not file_exists:
@@ -174,10 +247,6 @@ def scan_markets():
                 "execution_ready",
 
                 "execution_reason",
-
-                "notes",
-
-                "reasons",
 
                 "entry_price",
 
@@ -224,7 +293,10 @@ def scan_markets():
                 ):
                     continue
 
-                # flatten columns
+                # --------------------------------
+                # FIX MULTIINDEX
+                # --------------------------------
+
                 df_15m.columns = (
                     df_15m.columns
                     .get_level_values(0)
@@ -274,10 +346,12 @@ def scan_markets():
                 )
 
                 latest_15m = df_15m.iloc[-1]
+
                 latest_4h = df_4h.iloc[-1]
 
-                close = float(
-                    latest_15m["Close"]
+                close = round(
+                    float(latest_15m["Close"]),
+                    5
                 )
 
                 rsi = round(
@@ -323,11 +397,22 @@ def scan_markets():
                 )
 
                 # --------------------------------
-                # SIGNAL
+                # DEFAULTS
                 # --------------------------------
 
                 signal = "WAIT"
+
                 bias = "NEUTRAL"
+
+                setup_score = 0
+
+                reasons = []
+
+                execution_reason = ""
+
+                # --------------------------------
+                # BIAS
+                # --------------------------------
 
                 if bullish_15m:
                     bias = "BULLISH"
@@ -336,39 +421,29 @@ def scan_markets():
                     bias = "BEARISH"
 
                 # --------------------------------
-                # SCORE SYSTEM
+                # HTF ALIGNMENT
                 # --------------------------------
 
-                setup_score = 0
-
-                reasons = []
-
-                execution_reason = ""
-
-                # HTF ALIGNMENT
-
-                if bullish_15m and bullish_4h:
+                if (
+                    bullish_15m
+                    and bullish_4h
+                ):
 
                     setup_score += 25
 
                     reasons.append(
-                        "15m bullish trend"
+                        "Bullish HTF alignment"
                     )
 
-                    reasons.append(
-                        "4H bullish confirmation"
-                    )
-
-                elif bearish_15m and bearish_4h:
+                elif (
+                    bearish_15m
+                    and bearish_4h
+                ):
 
                     setup_score += 25
 
                     reasons.append(
-                        "15m bearish trend"
-                    )
-
-                    reasons.append(
-                        "4H bearish confirmation"
+                        "Bearish HTF alignment"
                     )
 
                 else:
@@ -377,7 +452,9 @@ def scan_markets():
                         "HTF conflict"
                     )
 
-                # RSI
+                # --------------------------------
+                # RSI MOMENTUM
+                # --------------------------------
 
                 if bullish_15m and rsi > 52:
 
@@ -401,7 +478,9 @@ def scan_markets():
                         "Weak RSI"
                     )
 
+                # --------------------------------
                 # CANDLE STRENGTH
+                # --------------------------------
 
                 candle_body = abs(
                     latest_15m["Close"]
@@ -440,9 +519,11 @@ def scan_markets():
                         "Weak candle"
                     )
 
+                # --------------------------------
                 # VOLATILITY
+                # --------------------------------
 
-                if atr_percent > 0.00035:
+                if atr_percent > 0.0003:
 
                     setup_score += 20
 
@@ -456,7 +537,9 @@ def scan_markets():
                         "Low volatility"
                     )
 
+                # --------------------------------
                 # BREAKOUT
+                # --------------------------------
 
                 recent_high = (
                     df_15m["High"]
@@ -504,28 +587,17 @@ def scan_markets():
                         "No breakout yet"
                     )
 
-                # QUALITY
-
-                if setup_score >= 80:
-
-                    setup_quality = "HIGH"
-
-                elif setup_score >= 55:
-
-                    setup_quality = "MEDIUM"
-
-                else:
-
-                    setup_quality = "LOW"
-
-                # EXECUTION
+                # --------------------------------
+                # EXECUTION FILTER
+                # --------------------------------
 
                 execution_ready = False
 
                 if (
-                    setup_score >= 80
-                    and breakout
+                    setup_score >= 75
                     and candle_strength > 0.55
+                    and atr_percent > 0.0003
+                    and breakout
                 ):
 
                     execution_ready = True
@@ -548,7 +620,7 @@ def scan_markets():
                             "Weak candle"
                         )
 
-                    elif atr_percent <= 0.00035:
+                    elif atr_percent <= 0.0003:
 
                         execution_reason = (
                             "Low volatility"
@@ -560,19 +632,37 @@ def scan_markets():
                             "Weak setup"
                         )
 
+                # --------------------------------
                 # FINAL SIGNAL
+                # --------------------------------
 
                 if execution_ready:
 
                     if bullish_15m:
-
                         signal = "BUY"
 
                     elif bearish_15m:
-
                         signal = "SELL"
 
-                # RR
+                # --------------------------------
+                # QUALITY
+                # --------------------------------
+
+                if setup_score >= 80:
+
+                    setup_quality = "HIGH"
+
+                elif setup_score >= 60:
+
+                    setup_quality = "MEDIUM"
+
+                else:
+
+                    setup_quality = "LOW"
+
+                # --------------------------------
+                # RISK MANAGEMENT
+                # --------------------------------
 
                 rr = 2.0
 
@@ -606,21 +696,31 @@ def scan_markets():
                         5
                     )
 
+                # --------------------------------
                 # SESSION
+                # --------------------------------
 
                 market_session = (
                     get_market_session()
                 )
 
+                # --------------------------------
                 # RESULT
+                # --------------------------------
 
-                result = {
+                signal_data = {
 
-                    "pair": pair,
+                    "signal_id":
+                        str(uuid.uuid4())[:8],
 
-                    "signal": signal,
+                    "pair":
+                        pair,
 
-                    "bias": bias,
+                    "signal":
+                        signal,
+
+                    "bias":
+                        bias,
 
                     "setup_quality":
                         setup_quality,
@@ -631,7 +731,8 @@ def scan_markets():
                     "market_session":
                         market_session,
 
-                    "rsi": rsi,
+                    "rsi":
+                        rsi,
 
                     "atr_percent":
                         atr_percent,
@@ -645,33 +746,51 @@ def scan_markets():
                     "execution_reason":
                         execution_reason,
 
-                    "reasons": reasons,
+                    "reasons":
+                        reasons,
 
                     "entry_price":
-                        round(close, 5),
+                        close,
 
-                    "sl": sl,
+                    "sl":
+                        sl,
 
-                    "tp": tp,
+                    "tp":
+                        tp,
 
-                    "rr": rr
+                    "rr":
+                        rr
                 }
 
-                results.append(result)
+                results.append(
+                    signal_data
+                )
 
-                # TELEGRAM ONLY FOR REAL TRADES
+                # --------------------------------
+                # TELEGRAM FILTER
+                # --------------------------------
 
-                if signal in ["BUY", "SELL"]:
+                if (
+                    signal in ["BUY", "SELL"]
+                    and execution_ready
+                    and setup_score >= 75
+                    and can_send_signal(
+                        pair,
+                        signal
+                    )
+                ):
 
                     send_telegram_alert(
-                        result
+                        signal_data
                     )
 
+                # --------------------------------
                 # CSV LOGGING
+                # --------------------------------
 
                 writer.writerow([
 
-                    str(uuid.uuid4())[:8],
+                    signal_data["signal_id"],
 
                     datetime.now(
                         timezone.utc
@@ -699,11 +818,7 @@ def scan_markets():
 
                     execution_reason,
 
-                    "|".join(reasons),
-
-                    "|".join(reasons),
-
-                    round(close, 5),
+                    close,
 
                     sl,
 
