@@ -1,0 +1,17 @@
+{
+    "EURUSD=X": {
+        "signal": "WAIT",
+        "execution_ready": false,
+        "setup_quality": "HIGH"
+    },
+    "GBPUSD=X": {
+        "signal": "WAIT",
+        "execution_ready": false,
+        "setup_quality": "MEDIUM"
+    },
+    "USDJPY=X": {
+        "signal": "WAIT",
+        "execution_ready": false,
+        "setup_quality": "LOW"
+    }
+}
