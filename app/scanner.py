@@ -13,19 +13,23 @@ from app.database import insert_trade
 from datetime import datetime, timezone
 
 # --------------------------------
+
 # ENV VARIABLES
+
 # --------------------------------
 
 TELEGRAM_BOT_TOKEN = os.getenv(
-    "TELEGRAM_BOT_TOKEN"
+"TELEGRAM_BOT_TOKEN"
 )
 
 TELEGRAM_CHAT_ID = os.getenv(
-    "TELEGRAM_CHAT_ID"
+"TELEGRAM_CHAT_ID"
 )
 
 # --------------------------------
+
 # FILES
+
 # --------------------------------
 
 SIGNALS_FILE = "signals.csv"
@@ -33,139 +37,154 @@ SIGNALS_FILE = "signals.csv"
 LAST_SIGNALS_FILE = "last_signals.json"
 
 # --------------------------------
+
 # PAIRS
+
 # --------------------------------
 
 PAIRS = [
-    "EURUSD=X",
-    "GBPUSD=X",
-    "USDJPY=X"
+"EURUSD=X",
+"GBPUSD=X",
+"USDJPY=X"
 ]
 
 # --------------------------------
+
 # FOREX MARKET STATUS
+
 # --------------------------------
 
 def forex_market_open():
 
-    now = datetime.utcnow()
+```
+now = datetime.utcnow()
 
-    weekday = now.weekday()
+weekday = now.weekday()
 
-    hour = now.hour
+hour = now.hour
 
-    # SATURDAY CLOSED
-    if weekday == 5:
-        return False
+if weekday == 5:
+    return False
 
-    # SUNDAY BEFORE OPEN
-    if weekday == 6 and hour < 22:
-        return False
+if weekday == 6 and hour < 22:
+    return False
 
-    # FRIDAY AFTER CLOSE
-    if weekday == 4 and hour >= 22:
-        return False
+if weekday == 4 and hour >= 22:
+    return False
 
-    return True
+return True
+```
 
 # --------------------------------
+
 # COOLDOWN SYSTEM
+
 # --------------------------------
 
 def can_send_signal(pair, signal):
 
-    if not os.path.exists(
-        LAST_SIGNALS_FILE
-    ):
-
-        with open(
-            LAST_SIGNALS_FILE,
-            "w"
-        ) as f:
-
-            json.dump({}, f)
-
-    try:
-
-        with open(
-            LAST_SIGNALS_FILE,
-            "r"
-        ) as f:
-
-            data = json.load(f)
-
-    except:
-
-        data = {}
-
-    now = time.time()
-
-    key = f"{pair}_{signal}"
-
-    if key in data:
-
-        last_time = data[key]
-
-        # 30 MINUTE COOLDOWN
-        if now - last_time < 1800:
-
-            print(
-                f"COOLDOWN ACTIVE: "
-                f"{pair} {signal}"
-            )
-
-            return False
-
-    data[key] = now
+```
+if not os.path.exists(
+    LAST_SIGNALS_FILE
+):
 
     with open(
         LAST_SIGNALS_FILE,
         "w"
     ) as f:
 
-        json.dump(data, f)
+        json.dump({}, f)
 
-    return True
+try:
+
+    with open(
+        LAST_SIGNALS_FILE,
+        "r"
+    ) as f:
+
+        data = json.load(f)
+
+except:
+
+    data = {}
+
+now = time.time()
+
+key = f"{pair}_{signal}"
+
+if key in data:
+
+    last_time = data[key]
+
+    if now - last_time < 1800:
+
+        print(
+            f"COOLDOWN ACTIVE: "
+            f"{pair} {signal}"
+        )
+
+        return False
+
+data[key] = now
+
+with open(
+    LAST_SIGNALS_FILE,
+    "w"
+) as f:
+
+    json.dump(data, f)
+
+return True
+```
 
 # --------------------------------
+
 # MARKET SESSION
+
 # --------------------------------
 
 def get_market_session():
 
-    hour = datetime.utcnow().hour
+```
+hour = datetime.utcnow().hour
 
-    if 0 <= hour < 7:
-        return "ASIA"
+if 0 <= hour < 7:
+    return "ASIA"
 
-    elif 7 <= hour < 13:
-        return "LONDON"
+elif 7 <= hour < 13:
+    return "LONDON"
 
-    elif 13 <= hour < 21:
-        return "NEW_YORK"
+elif 13 <= hour < 21:
+    return "NEW_YORK"
 
-    return "OFF_HOURS"
+return "OFF_HOURS"
+```
 
 # --------------------------------
+
 # TELEGRAM ALERT
+
 # --------------------------------
 
 def send_telegram_alert(signal):
 
-    if (
-        not TELEGRAM_BOT_TOKEN
-        or not TELEGRAM_CHAT_ID
-    ):
+```
+if (
+    not TELEGRAM_BOT_TOKEN
+    or not TELEGRAM_CHAT_ID
+):
 
-        print(
-            "TELEGRAM VARIABLES MISSING"
-        )
+    print(
+        "TELEGRAM VARIABLES MISSING"
+    )
 
-        return
+    return
 
-    try:
+try:
 
-        message = f"""
+    message = f"""
+```
+
 🚨 FOREX AI RADAR ALERT 🚨
 
 Pair: {signal['pair']}
@@ -191,723 +210,594 @@ Session: {signal['market_session']}
 RSI: {signal['rsi']}
 """
 
-        url = (
-            f"https://api.telegram.org/"
-            f"bot{TELEGRAM_BOT_TOKEN}"
-            f"/sendMessage"
-        )
+```
+    url = (
+        f"https://api.telegram.org/"
+        f"bot{TELEGRAM_BOT_TOKEN}"
+        f"/sendMessage"
+    )
 
-        payload = {
+    payload = {
 
-            "chat_id":
-                TELEGRAM_CHAT_ID,
+        "chat_id":
+            TELEGRAM_CHAT_ID,
 
-            "text":
-                message
-        }
+        "text":
+            message
+    }
 
-        response = requests.post(
-            url,
-            json=payload,
-            timeout=10
-        )
+    response = requests.post(
+        url,
+        json=payload,
+        timeout=10
+    )
 
-        print(
-            "TELEGRAM STATUS:",
-            response.status_code
-        )
+    print(
+        "TELEGRAM STATUS:",
+        response.status_code
+    )
 
-    except Exception as e:
+except Exception as e:
 
-        print(
-            "TELEGRAM ERROR:",
-            e
-        )
+    print(
+        "TELEGRAM ERROR:",
+        e
+    )
+```
 
 # --------------------------------
+
 # MAIN SCANNER
+
 # --------------------------------
 
 def scan_markets():
 
-    results = []
+```
+results = []
 
-    # --------------------------------
-    # MARKET CLOSED FILTER
-    # --------------------------------
+if not forex_market_open():
 
-    if not forex_market_open():
+    print("FOREX MARKET CLOSED")
 
-        print("FOREX MARKET CLOSED")
+    return [{
 
-        return [{
+        "market_status":
+            "CLOSED",
 
-            "market_status":
-                "CLOSED",
+        "message":
+            "Forex market is currently closed"
+    }]
 
-            "message":
-                "Forex market is currently closed"
-        }]
+file_exists = os.path.isfile(
+    SIGNALS_FILE
+)
 
-    file_exists = os.path.isfile(
-        SIGNALS_FILE
-    )
+with open(
+    SIGNALS_FILE,
+    mode="a",
+    newline="",
+    encoding="utf-8"
+) as file:
 
-    with open(
-        SIGNALS_FILE,
-        mode="a",
-        newline="",
-        encoding="utf-8"
-    ) as file:
+    writer = csv.writer(file)
 
-        writer = csv.writer(file)
+    if not file_exists:
 
-        # --------------------------------
-        # CSV HEADERS
-        # --------------------------------
+        writer.writerow([
 
-        if not file_exists:
+            "signal_id",
+            "timestamp",
+            "pair",
+            "signal",
+            "bias",
+            "setup_quality",
+            "setup_score",
+            "market_session",
+            "rsi",
+            "atr_percent",
+            "candle_strength",
+            "execution_ready",
+            "execution_reason",
+            "entry_price",
+            "sl",
+            "tp",
+            "rr",
+            "trade_status"
+        ])
 
-            writer.writerow([
+    for pair in PAIRS:
 
-                "signal_id",
+        try:
 
-                "timestamp",
+            df_15m = yf.download(
+                pair,
+                period="5d",
+                interval="15m",
+                auto_adjust=True,
+                progress=False
+            )
 
-                "pair",
+            df_4h = yf.download(
+                pair,
+                period="30d",
+                interval="4h",
+                auto_adjust=True,
+                progress=False
+            )
 
-                "signal",
+            if (
+                df_15m.empty
+                or df_4h.empty
+            ):
+                continue
 
-                "bias",
+            df_15m.columns = (
+                df_15m.columns
+                .get_level_values(0)
+            )
 
-                "setup_quality",
+            df_4h.columns = (
+                df_4h.columns
+                .get_level_values(0)
+            )
 
-                "setup_score",
+            df_15m["ema20"] = ta.trend.ema_indicator(
+                df_15m["Close"],
+                window=20
+            )
 
-                "market_session",
+            df_15m["ema50"] = ta.trend.ema_indicator(
+                df_15m["Close"],
+                window=50
+            )
 
-                "rsi",
+            df_15m["rsi"] = ta.momentum.rsi(
+                df_15m["Close"],
+                window=14
+            )
 
-                "atr_percent",
+            atr = ta.volatility.average_true_range(
+                df_15m["High"],
+                df_15m["Low"],
+                df_15m["Close"],
+                window=14
+            )
 
-                "candle_strength",
+            df_15m["atr"] = atr
 
-                "execution_ready",
+            df_4h["ema20"] = ta.trend.ema_indicator(
+                df_4h["Close"],
+                window=20
+            )
 
-                "execution_reason",
+            df_4h["ema50"] = ta.trend.ema_indicator(
+                df_4h["Close"],
+                window=50
+            )
 
-                "entry_price",
+            latest_15m = df_15m.iloc[-1]
+            latest_4h = df_4h.iloc[-1]
 
-                "sl",
+            close = round(
+                float(latest_15m["Close"]),
+                5
+            )
 
-                "tp",
+            rsi = round(
+                float(latest_15m["rsi"]),
+                2
+            )
 
-                "rr",
+            atr_value = float(
+                latest_15m["atr"]
+            )
 
-                "trade_status"
-            ])
+            atr_percent = round(
+                atr_value / close,
+                6
+            )
 
-        # --------------------------------
-        # LOOP PAIRS
-        # --------------------------------
+            bullish_15m = (
+                latest_15m["ema20"]
+                >
+                latest_15m["ema50"]
+            )
 
-        for pair in PAIRS:
+            bullish_4h = (
+                latest_4h["ema20"]
+                >
+                latest_4h["ema50"]
+            )
 
-            try:
+            bearish_15m = (
+                latest_15m["ema20"]
+                <
+                latest_15m["ema50"]
+            )
 
-                # --------------------------------
-                # DOWNLOAD DATA
-                # --------------------------------
+            bearish_4h = (
+                latest_4h["ema20"]
+                <
+                latest_4h["ema50"]
+            )
 
-                df_15m = yf.download(
-                    pair,
-                    period="5d",
-                    interval="15m",
-                    auto_adjust=True,
-                    progress=False
+            signal = "WAIT"
+            bias = "NEUTRAL"
+            setup_score = 0
+            reasons = []
+            execution_reason = ""
+
+            if bullish_15m:
+                bias = "BULLISH"
+
+            elif bearish_15m:
+                bias = "BEARISH"
+
+            if (
+                bullish_15m
+                and bullish_4h
+            ):
+
+                setup_score += 25
+                reasons.append(
+                    "Bullish HTF alignment"
                 )
 
-                df_4h = yf.download(
-                    pair,
-                    period="30d",
-                    interval="4h",
-                    auto_adjust=True,
-                    progress=False
+            elif (
+                bearish_15m
+                and bearish_4h
+            ):
+
+                setup_score += 25
+                reasons.append(
+                    "Bearish HTF alignment"
                 )
 
-                if (
-                    df_15m.empty
-                    or df_4h.empty
-                ):
-                    continue
+            else:
 
-                # --------------------------------
-                # FIX MULTIINDEX
-                # --------------------------------
-
-                df_15m.columns = (
-                    df_15m.columns
-                    .get_level_values(0)
+                reasons.append(
+                    "HTF conflict"
                 )
 
-                df_4h.columns = (
-                    df_4h.columns
-                    .get_level_values(0)
+            if bullish_15m and rsi > 52:
+
+                setup_score += 15
+                reasons.append(
+                    "Bullish RSI momentum"
                 )
 
-                # --------------------------------
-                # INDICATORS
-                # --------------------------------
+            elif bearish_15m and rsi < 48:
 
-                df_15m["ema20"] = ta.trend.ema_indicator(
-                    df_15m["Close"],
-                    window=20
+                setup_score += 15
+                reasons.append(
+                    "Bearish RSI momentum"
                 )
 
-                df_15m["ema50"] = ta.trend.ema_indicator(
-                    df_15m["Close"],
-                    window=50
+            else:
+
+                reasons.append(
+                    "Weak RSI"
                 )
 
-                df_15m["rsi"] = ta.momentum.rsi(
-                    df_15m["Close"],
-                    window=14
-                )
+            candle_body = abs(
+                latest_15m["Close"]
+                -
+                latest_15m["Open"]
+            )
 
-                atr = ta.volatility.average_true_range(
-                    df_15m["High"],
-                    df_15m["Low"],
-                    df_15m["Close"],
-                    window=14
-                )
+            candle_range = (
+                latest_15m["High"]
+                -
+                latest_15m["Low"]
+            )
 
-                df_15m["atr"] = atr
+            candle_strength = 0
 
-                df_4h["ema20"] = ta.trend.ema_indicator(
-                    df_4h["Close"],
-                    window=20
-                )
+            if candle_range > 0:
 
-                df_4h["ema50"] = ta.trend.ema_indicator(
-                    df_4h["Close"],
-                    window=50
-                )
-
-                latest_15m = df_15m.iloc[-1]
-
-                latest_4h = df_4h.iloc[-1]
-
-                close = round(
-                    float(latest_15m["Close"]),
-                    5
-                )
-
-                rsi = round(
-                    float(latest_15m["rsi"]),
+                candle_strength = round(
+                    candle_body
+                    /
+                    candle_range,
                     2
                 )
 
-                atr_value = float(
-                    latest_15m["atr"]
+            if candle_strength > 0.6:
+
+                setup_score += 20
+                reasons.append(
+                    "Strong candle"
                 )
 
-                atr_percent = round(
-                    atr_value / close,
-                    6
+            elif candle_strength > 0.4:
+
+                setup_score += 10
+                reasons.append(
+                    "Moderate candle"
                 )
 
-                # --------------------------------
-                # TREND
-                # --------------------------------
+            else:
 
-                bullish_15m = (
-                    latest_15m["ema20"]
-                    >
-                    latest_15m["ema50"]
+                reasons.append(
+                    "Weak candle"
                 )
 
-                bullish_4h = (
-                    latest_4h["ema20"]
-                    >
-                    latest_4h["ema50"]
+            if atr_percent > 0.0003:
+
+                setup_score += 20
+                reasons.append(
+                    "Healthy volatility"
                 )
 
-                bearish_15m = (
-                    latest_15m["ema20"]
-                    <
-                    latest_15m["ema50"]
+            else:
+
+                reasons.append(
+                    "Low volatility"
                 )
 
-                bearish_4h = (
-                    latest_4h["ema20"]
-                    <
-                    latest_4h["ema50"]
+            recent_high = (
+                df_15m["High"]
+                .tail(10)
+                .max()
+            )
+
+            recent_low = (
+                df_15m["Low"]
+                .tail(10)
+                .min()
+            )
+
+            breakout = False
+
+            if (
+                bullish_15m
+                and close >= recent_high
+            ):
+
+                breakout = True
+                setup_score += 20
+                reasons.append(
+                    "Bullish breakout"
                 )
 
-                # --------------------------------
-                # DEFAULTS
-                # --------------------------------
+            elif (
+                bearish_15m
+                and close <= recent_low
+            ):
 
-                signal = "WAIT"
-
-                bias = "NEUTRAL"
-
-                setup_score = 0
-
-                reasons = []
-
-                execution_reason = ""
-
-                # --------------------------------
-                # BIAS
-                # --------------------------------
-
-                if bullish_15m:
-
-                    bias = "BULLISH"
-
-                elif bearish_15m:
-
-                    bias = "BEARISH"
-
-                # --------------------------------
-                # HTF ALIGNMENT
-                # --------------------------------
-
-                if (
-                    bullish_15m
-                    and bullish_4h
-                ):
-
-                    setup_score += 25
-
-                    reasons.append(
-                        "Bullish HTF alignment"
-                    )
-
-                elif (
-                    bearish_15m
-                    and bearish_4h
-                ):
-
-                    setup_score += 25
-
-                    reasons.append(
-                        "Bearish HTF alignment"
-                    )
-
-                else:
-
-                    reasons.append(
-                        "HTF conflict"
-                    )
-
-                # --------------------------------
-                # RSI MOMENTUM
-                # --------------------------------
-
-                if bullish_15m and rsi > 52:
-
-                    setup_score += 15
-
-                    reasons.append(
-                        "Bullish RSI momentum"
-                    )
-
-                elif bearish_15m and rsi < 48:
-
-                    setup_score += 15
-
-                    reasons.append(
-                        "Bearish RSI momentum"
-                    )
-
-                else:
-
-                    reasons.append(
-                        "Weak RSI"
-                    )
-
-                # --------------------------------
-                # CANDLE STRENGTH
-                # --------------------------------
-
-                candle_body = abs(
-                    latest_15m["Close"]
-                    -
-                    latest_15m["Open"]
+                breakout = True
+                setup_score += 20
+                reasons.append(
+                    "Bearish breakout"
                 )
 
-                candle_range = (
-                    latest_15m["High"]
-                    -
-                    latest_15m["Low"]
+            else:
+
+                reasons.append(
+                    "No breakout yet"
                 )
 
-                candle_strength = 0
+            execution_ready = False
 
-                if candle_range > 0:
+            if (
+                setup_score >= 75
+                and candle_strength > 0.35
+                and atr_percent > 0.0003
+                and breakout
+            ):
 
-                    candle_strength = round(
-                        candle_body
-                        /
-                        candle_range,
-                        2
+                execution_ready = True
+                execution_reason = (
+                    "Conditions aligned"
+                )
+
+            else:
+
+                if not breakout:
+
+                    execution_reason = (
+                        "Breakout missing"
                     )
 
-                # WEIGHTED SCORING
+                elif candle_strength <= 0.35:
 
-                if candle_strength > 0.6:
-
-                    setup_score += 20
-
-                    reasons.append(
-                        "Strong candle"
-                    )
-
-                elif candle_strength > 0.4:
-
-                    setup_score += 10
-
-                    reasons.append(
-                        "Moderate candle"
-                    )
-
-                else:
-
-                    reasons.append(
+                    execution_reason = (
                         "Weak candle"
                     )
 
-                # --------------------------------
-                # VOLATILITY
-                # --------------------------------
+                elif atr_percent <= 0.0003:
 
-                if atr_percent > 0.0003:
-
-                    setup_score += 20
-
-                    reasons.append(
-                        "Healthy volatility"
-                    )
-
-                else:
-
-                    reasons.append(
+                    execution_reason = (
                         "Low volatility"
                     )
 
-                # --------------------------------
-                # BREAKOUT
-                # --------------------------------
-
-                recent_high = (
-                    df_15m["High"]
-                    .tail(10)
-                    .max()
-                )
-
-                recent_low = (
-                    df_15m["Low"]
-                    .tail(10)
-                    .min()
-                )
-
-                breakout = False
-
-                if (
-                    bullish_15m
-                    and close >= recent_high
-                ):
-
-                    breakout = True
-
-                    setup_score += 20
-
-                    reasons.append(
-                        "Bullish breakout"
-                    )
-
-                elif (
-                    bearish_15m
-                    and close <= recent_low
-                ):
-
-                    breakout = True
-
-                    setup_score += 20
-
-                    reasons.append(
-                        "Bearish breakout"
-                    )
-
                 else:
-
-                    reasons.append(
-                        "No breakout yet"
-                    )
-
-                # --------------------------------
-                # EXECUTION FILTER
-                # --------------------------------
-
-                execution_ready = False
-
-                if (
-                    setup_score >= 75
-                    and candle_strength > 0.35
-                    and atr_percent > 0.0003
-                    and breakout
-                ):
-
-                    execution_ready = True
 
                     execution_reason = (
-                        "Conditions aligned"
+                        "Weak setup"
                     )
 
-                else:
-
-                    if not breakout:
-
-                        execution_reason = (
-                            "Breakout missing"
-                        )
-
-                    elif candle_strength <= 0.35:
-
-                        execution_reason = (
-                            "Weak candle"
-                        )
-
-                    elif atr_percent <= 0.0003:
-
-                        execution_reason = (
-                            "Low volatility"
-                        )
-
-                    else:
-
-                        execution_reason = (
-                            "Weak setup"
-                        )
-
-                # --------------------------------
-                # FINAL SIGNAL
-                # --------------------------------
-
-                if execution_ready:
-
-                    if bullish_15m:
-
-                        signal = "BUY"
-
-                    elif bearish_15m:
-
-                        signal = "SELL"
-
-                # --------------------------------
-                # QUALITY
-                # --------------------------------
-
-                if setup_score >= 85:
-
-                    setup_quality = "HIGH"
-
-                elif setup_score >= 65:
-
-                    setup_quality = "MEDIUM"
-
-                else:
-
-                    setup_quality = "LOW"
-
-                # --------------------------------
-                # RISK MANAGEMENT
-                # --------------------------------
-
-                rr = 2.0
-
-                sl_distance = atr_value * 1.5
+            if execution_ready:
 
                 if bullish_15m:
+                    signal = "BUY"
 
-                    sl = round(
-                        close - sl_distance,
-                        5
-                    )
+                elif bearish_15m:
+                    signal = "SELL"
 
-                    tp = round(
-                        close + (
-                            sl_distance * rr
-                        ),
-                        5
-                    )
+            if setup_score >= 85:
+                setup_quality = "HIGH"
 
-                else:
+            elif setup_score >= 65:
+                setup_quality = "MEDIUM"
 
-                    sl = round(
-                        close + sl_distance,
-                        5
-                    )
+            else:
+                setup_quality = "LOW"
 
-                    tp = round(
-                        close - (
-                            sl_distance * rr
-                        ),
-                        5
-                    )
+            rr = 2.0
 
-                # --------------------------------
-                # SESSION
-                # --------------------------------
+            sl_distance = atr_value * 1.5
 
-                market_session = (
-                    get_market_session()
+            if bullish_15m:
+
+                sl = round(
+                    close - sl_distance,
+                    5
                 )
 
-                # --------------------------------
-                # RESULT
-                # --------------------------------
-
-                signal_data = {
-
-                 "signal_id":
-                     str(uuid.uuid4())[:8],
-
-                 "timestamp":
-                      datetime.now(
-                          timezone.utc
-                     ).isoformat(),
-
-                 "pair":
-                     pair,
-
-                 "signal":
-                     signal,
-
-                 "bias":
-                     bias,
-
-                 "setup_quality":
-                      setup_quality,
-
-                 "setup_score":
-                     setup_score,
-
-                 "market_session":
-                      market_session,
-
-                 "rsi":
-                      rsi,
-
-                 "atr_percent":
-                     atr_percent,
-
-                 "candle_strength":
-                      candle_strength,
-    
-                 "execution_ready":
-                     execution_ready,
-
-                 "execution_reason":
-                      execution_reason,
-
-                 "reasons":
-                     reasons,
-
-                 "entry_price":
-                     close,
-
-                 "sl":
-                     sl,
-
-                 "tp":
-                     tp,
-
-                 "rr":
-                     rr,
-
-                 "trade_status":
-                     "OPEN"
-                }
-
-                results.append(
-                 signal_data
+                tp = round(
+                    close + (
+                        sl_distance * rr
+                    ),
+                    5
                 )
 
-# --------------------------------
-# SQLITE INSERT
-# --------------------------------
+            else:
 
-insert_trade(signal_data)
-
-# --------------------------------
-# TELEGRAM FILTER
-# --------------------------------
-
-if (
-    signal in ["BUY", "SELL"]
-    and execution_ready
-    and setup_score >= 75
-    and can_send_signal(
-        pair,
-        signal
-    )
-):
-
-    send_telegram_alert(
-        signal_data
-    )
-
-# --------------------------------
-# CSV LOGGING
-# --------------------------------
-
-writer.writerow([
-
-    signal_data["signal_id"],
-
-    signal_data["timestamp"],
-
-    pair,
-
-    signal,
-
-    bias,
-
-    setup_quality,
-
-    setup_score,
-
-    market_session,
-
-    rsi,
-
-    atr_percent,
-
-    candle_strength,
-
-    execution_ready,
-
-    execution_reason,
-
-    close,
-
-    sl,
-
-    tp,
-
-    rr,
-
-    "OPEN"
-])
-
-            except Exception as e:
-
-                print(
-                    f"{pair} ERROR:",
-                    e
+                sl = round(
+                    close + sl_distance,
+                    5
                 )
 
-    return results
+                tp = round(
+                    close - (
+                        sl_distance * rr
+                    ),
+                    5
+                )
+
+            market_session = (
+                get_market_session()
+            )
+
+            signal_data = {
+
+                "signal_id":
+                    str(uuid.uuid4())[:8],
+
+                "timestamp":
+                    datetime.now(
+                        timezone.utc
+                    ).isoformat(),
+
+                "pair":
+                    pair,
+
+                "signal":
+                    signal,
+
+                "bias":
+                    bias,
+
+                "setup_quality":
+                    setup_quality,
+
+                "setup_score":
+                    setup_score,
+
+                "market_session":
+                    market_session,
+
+                "rsi":
+                    rsi,
+
+                "atr_percent":
+                    atr_percent,
+
+                "candle_strength":
+                    candle_strength,
+
+                "execution_ready":
+                    execution_ready,
+
+                "execution_reason":
+                    execution_reason,
+
+                "reasons":
+                    reasons,
+
+                "entry_price":
+                    close,
+
+                "sl":
+                    sl,
+
+                "tp":
+                    tp,
+
+                "rr":
+                    rr,
+
+                "trade_status":
+                    "OPEN"
+            }
+
+            results.append(
+                signal_data
+            )
+
+            insert_trade(signal_data)
+
+            if (
+                signal in ["BUY", "SELL"]
+                and execution_ready
+                and setup_score >= 75
+                and can_send_signal(
+                    pair,
+                    signal
+                )
+            ):
+
+                send_telegram_alert(
+                    signal_data
+                )
+
+            writer.writerow([
+
+                signal_data["signal_id"],
+
+                signal_data["timestamp"],
+
+                pair,
+
+                signal,
+
+                bias,
+
+                setup_quality,
+
+                setup_score,
+
+                market_session,
+
+                rsi,
+
+                atr_percent,
+
+                candle_strength,
+
+                execution_ready,
+
+                execution_reason,
+
+                close,
+
+                sl,
+
+                tp,
+
+                rr,
+
+                "OPEN"
+            ])
+
+        except Exception as e:
+
+            print(
+                f"{pair} ERROR:",
+                e
+            )
+
+return results
+```
