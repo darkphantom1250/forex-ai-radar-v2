@@ -1,46 +1,27 @@
-import pandas as pd
 import yfinance as yf
-import os
 
-CSV_FILE = "signals.csv"
+from app.database import (
+    get_open_trades,
+    update_trade_status
+)
 
-def update_trade_status():
+# --------------------------------
+# UPDATE TRADE STATUS
+# --------------------------------
 
-    if not os.path.exists(CSV_FILE):
+def manage_trades():
 
-       print("signals.csv missing")
+    trades = get_open_trades()
 
-       return
+    if not trades:
 
+        print("NO OPEN TRADES")
 
-    try:
-
-        df = pd.read_csv(CSV_FILE)
-
-    except Exception as e:
-
-        print("CSV READ ERROR:", e)
         return
 
-    if df.empty:
-        return
-
-    updated = False
-
-    for i, row in df.iterrows():
-
-        # -----------------------
-        # ONLY OPEN TRADES
-        # -----------------------
-
-        if row["trade_status"] != "OPEN":
-            continue
+    for row in trades:
 
         signal = row["signal"]
-
-        # -----------------------
-        # IGNORE WAIT SIGNALS
-        # -----------------------
 
         if signal == "WAIT":
             continue
@@ -67,63 +48,77 @@ def update_trade_status():
 
             latest = data.iloc[-1]
 
-            high = float(latest["High"])
-            low = float(latest["Low"])
+            high = float(
+                latest["High"]
+            )
 
-            tp = float(row["tp"])
-            sl = float(row["sl"])
+            low = float(
+                latest["Low"]
+            )
 
-            # -----------------------
+            tp = float(
+                row["tp"]
+            )
+
+            sl = float(
+                row["sl"]
+            )
+
+            # --------------------------------
             # BUY TRADE
-            # -----------------------
+            # --------------------------------
 
             if signal == "BUY":
 
                 if high >= tp:
 
-                    df.at[i, "trade_status"] = "WIN"
+                    update_trade_status(
+                        row["signal_id"],
+                        "WIN"
+                    )
 
                     print(
                         f"{pair} BUY WIN"
                     )
 
-                    updated = True
-
                 elif low <= sl:
 
-                    df.at[i, "trade_status"] = "LOSS"
+                    update_trade_status(
+                        row["signal_id"],
+                        "LOSS"
+                    )
 
                     print(
                         f"{pair} BUY LOSS"
                     )
 
-                    updated = True
-
-            # -----------------------
+            # --------------------------------
             # SELL TRADE
-            # -----------------------
+            # --------------------------------
 
             elif signal == "SELL":
 
                 if low <= tp:
 
-                    df.at[i, "trade_status"] = "WIN"
+                    update_trade_status(
+                        row["signal_id"],
+                        "WIN"
+                    )
 
                     print(
                         f"{pair} SELL WIN"
                     )
 
-                    updated = True
-
                 elif high >= sl:
 
-                    df.at[i, "trade_status"] = "LOSS"
+                    update_trade_status(
+                        row["signal_id"],
+                        "LOSS"
+                    )
 
                     print(
                         f"{pair} SELL LOSS"
                     )
-
-                    updated = True
 
         except Exception as e:
 
@@ -131,18 +126,3 @@ def update_trade_status():
                 f"{pair} TRADE ERROR:",
                 e
             )
-
-    # -----------------------
-    # SAVE CSV
-    # -----------------------
-
-    if updated:
-
-        df.to_csv(
-            CSV_FILE,
-            index=False
-        )
-
-        print(
-            "TRADE STATUS UPDATED"
-        )
