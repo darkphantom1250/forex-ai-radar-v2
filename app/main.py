@@ -10,8 +10,72 @@ from app.scanner import scan_markets
 from app.trade_manager import update_trade_status
 from app.analytics import get_analytics
 from app.diagnostics import get_diagnostics
+import pandas as pd
 
 app = FastAPI()
+
+# --------------------------------
+# ENSURE CSV EXISTS
+# --------------------------------
+
+def ensure_signals_file():
+
+    if not os.path.exists(
+        "signals.csv"
+    ):
+
+        columns = [
+
+            "signal_id",
+
+            "timestamp",
+
+            "pair",
+
+            "signal",
+
+            "bias",
+
+            "setup_quality",
+
+            "setup_score",
+
+            "market_session",
+
+            "rsi",
+
+            "atr_percent",
+
+            "candle_strength",
+
+            "execution_ready",
+
+            "execution_reason",
+
+            "entry_price",
+
+            "sl",
+
+            "tp",
+
+            "rr",
+
+            "trade_status"
+        ]
+
+        df = pd.DataFrame(
+            columns=columns
+        )
+
+        df.to_csv(
+            "signals.csv",
+            index=False
+        )
+
+        print(
+            "signals.csv CREATED"
+        )
+
 
 # -----------------------------------
 # CORS
@@ -59,6 +123,8 @@ def scheduled_scan():
 
 @app.on_event("startup")
 def startup_event():
+
+    ensure_signals_file()
 
     print("STARTING SCHEDULER...")
 
