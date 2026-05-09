@@ -105,18 +105,25 @@ def get_signals():
 # FORCE SCAN
 # -----------------------------------
 
+
 @app.get("/force-scan")
 def force_scan():
 
     print("MANUAL FORCE SCAN")
 
+    # ALWAYS UPDATE TRADES
     update_trade_status()
 
+    # THEN SCAN MARKET
     signals = scan_markets()
 
     return {
-        "message": "Manual scan complete",
-        "signals": signals
+
+        "message":
+            "Manual scan complete",
+
+        "signals":
+            signals
     }
 
 # -----------------------------------
@@ -249,4 +256,15 @@ def test_trade():
     return {
         "message":
             "Test trade added"
+    }
+
+
+@app.get("/run-trade-manager")
+def run_trade_manager():
+
+    update_trade_status()
+
+    return {
+        "message":
+            "Trade manager executed"
     }
