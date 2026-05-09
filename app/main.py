@@ -3,6 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from apscheduler.schedulers.background import BackgroundScheduler
 
+from app.database import init_db
+
 import requests
 import os
 
@@ -125,6 +127,8 @@ def scheduled_scan():
 def startup_event():
 
     ensure_signals_file()
+
+    init_db()
 
     print("STARTING SCHEDULER...")
 
