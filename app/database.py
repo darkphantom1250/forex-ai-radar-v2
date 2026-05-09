@@ -77,9 +77,7 @@ def init_db():
 
     print("DATABASE READY")
 
-
-
-    # --------------------------------
+# --------------------------------
 # INSERT TRADE
 # --------------------------------
 
@@ -143,6 +141,61 @@ def insert_trade(trade):
             trade["rr"],
             trade["trade_status"]
 
+        )
+    )
+
+    conn.commit()
+
+    conn.close()
+
+# --------------------------------
+# GET OPEN TRADES
+# --------------------------------
+
+def get_open_trades():
+
+    conn = get_connection()
+
+    cursor = conn.cursor()
+
+    cursor.execute(
+        '''
+        SELECT * FROM trades
+        WHERE trade_status = 'OPEN'
+        '''
+    )
+
+    rows = cursor.fetchall()
+
+    conn.close()
+
+    return [
+        dict(row)
+        for row in rows
+    ]
+
+# --------------------------------
+# UPDATE TRADE STATUS
+# --------------------------------
+
+def update_trade_status(
+    signal_id,
+    status
+):
+
+    conn = get_connection()
+
+    cursor = conn.cursor()
+
+    cursor.execute(
+        '''
+        UPDATE trades
+        SET trade_status = ?
+        WHERE signal_id = ?
+        ''',
+        (
+            status,
+            signal_id
         )
     )
 
