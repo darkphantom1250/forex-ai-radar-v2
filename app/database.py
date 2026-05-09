@@ -76,3 +76,76 @@ def init_db():
     conn.close()
 
     print("DATABASE READY")
+
+
+
+    # --------------------------------
+# INSERT TRADE
+# --------------------------------
+
+def insert_trade(trade):
+
+    conn = get_connection()
+
+    cursor = conn.cursor()
+
+    cursor.execute(
+        '''
+        INSERT INTO trades (
+
+            signal_id,
+            timestamp,
+            pair,
+            signal,
+            bias,
+            setup_quality,
+            setup_score,
+            market_session,
+            rsi,
+            atr_percent,
+            candle_strength,
+            execution_ready,
+            execution_reason,
+            entry_price,
+            sl,
+            tp,
+            rr,
+            trade_status
+
+        )
+
+        VALUES (
+
+            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+            ?, ?, ?, ?, ?, ?, ?, ?
+
+        )
+        ''',
+
+        (
+
+            trade["signal_id"],
+            trade["timestamp"],
+            trade["pair"],
+            trade["signal"],
+            trade["bias"],
+            trade["setup_quality"],
+            trade["setup_score"],
+            trade["market_session"],
+            trade["rsi"],
+            trade["atr_percent"],
+            trade["candle_strength"],
+            int(trade["execution_ready"]),
+            trade["execution_reason"],
+            trade["entry_price"],
+            trade["sl"],
+            trade["tp"],
+            trade["rr"],
+            trade["trade_status"]
+
+        )
+    )
+
+    conn.commit()
+
+    conn.close()

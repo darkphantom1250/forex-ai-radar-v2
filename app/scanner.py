@@ -8,6 +8,8 @@ import requests
 import json
 import time
 
+from app.database import insert_trade
+
 from datetime import datetime, timezone
 
 # --------------------------------
@@ -770,124 +772,136 @@ def scan_markets():
 
                 signal_data = {
 
-                    "signal_id":
-                        str(uuid.uuid4())[:8],
+                 "signal_id":
+                     str(uuid.uuid4())[:8],
 
-                    "pair":
-                        pair,
+                 "timestamp":
+                      datetime.now(
+                          timezone.utc
+                     ).isoformat(),
 
-                    "signal":
-                        signal,
+                 "pair":
+                     pair,
 
-                    "bias":
-                        bias,
+                 "signal":
+                     signal,
 
-                    "setup_quality":
-                        setup_quality,
+                 "bias":
+                     bias,
 
-                    "setup_score":
-                        setup_score,
+                 "setup_quality":
+                      setup_quality,
 
-                    "market_session":
-                        market_session,
+                 "setup_score":
+                     setup_score,
 
-                    "rsi":
-                        rsi,
+                 "market_session":
+                      market_session,
 
-                    "atr_percent":
-                        atr_percent,
+                 "rsi":
+                      rsi,
 
-                    "candle_strength":
-                        candle_strength,
+                 "atr_percent":
+                     atr_percent,
 
-                    "execution_ready":
-                        execution_ready,
+                 "candle_strength":
+                      candle_strength,
+    
+                 "execution_ready":
+                     execution_ready,
 
-                    "execution_reason":
-                        execution_reason,
+                 "execution_reason":
+                      execution_reason,
 
-                    "reasons":
-                        reasons,
+                 "reasons":
+                     reasons,
 
-                    "entry_price":
-                        close,
+                 "entry_price":
+                     close,
 
-                    "sl":
-                        sl,
+                 "sl":
+                     sl,
 
-                    "tp":
-                        tp,
+                 "tp":
+                     tp,
 
-                    "rr":
-                        rr
+                 "rr":
+                     rr,
+
+                 "trade_status":
+                     "OPEN"
                 }
 
                 results.append(
-                    signal_data
+                 signal_data
                 )
 
-                # --------------------------------
-                # TELEGRAM FILTER
-                # --------------------------------
+# --------------------------------
+# SQLITE INSERT
+# --------------------------------
 
-                if (
-                    signal in ["BUY", "SELL"]
-                    and execution_ready
-                    and setup_score >= 75
-                    and can_send_signal(
-                        pair,
-                        signal
-                    )
-                ):
+insert_trade(signal_data)
 
-                    send_telegram_alert(
-                        signal_data
-                    )
+# --------------------------------
+# TELEGRAM FILTER
+# --------------------------------
 
-                # --------------------------------
-                # CSV LOGGING
-                # --------------------------------
+if (
+    signal in ["BUY", "SELL"]
+    and execution_ready
+    and setup_score >= 75
+    and can_send_signal(
+        pair,
+        signal
+    )
+):
 
-                writer.writerow([
+    send_telegram_alert(
+        signal_data
+    )
 
-                    signal_data["signal_id"],
+# --------------------------------
+# CSV LOGGING
+# --------------------------------
 
-                    datetime.now(
-                        timezone.utc
-                    ).isoformat(),
+writer.writerow([
 
-                    pair,
+    signal_data["signal_id"],
 
-                    signal,
+    signal_data["timestamp"],
 
-                    bias,
+    pair,
 
-                    setup_quality,
+    signal,
 
-                    setup_score,
+    bias,
 
-                    market_session,
+    setup_quality,
 
-                    rsi,
+    setup_score,
 
-                    atr_percent,
+    market_session,
 
-                    candle_strength,
+    rsi,
 
-                    execution_ready,
+    atr_percent,
 
-                    execution_reason,
+    candle_strength,
 
-                    close,
+    execution_ready,
 
-                    sl,
+    execution_reason,
 
-                    tp,
+    close,
 
-                    rr,
+    sl,
 
-                    "OPEN"
-                ])
+    tp,
+
+    rr,
+
+    "OPEN"
+])
 
             except Exception as e:
 
