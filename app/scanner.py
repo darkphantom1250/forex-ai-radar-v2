@@ -41,6 +41,32 @@ PAIRS = [
 ]
 
 # --------------------------------
+# FOREX MARKET STATUS
+# --------------------------------
+
+def forex_market_open():
+
+    now = datetime.utcnow()
+
+    weekday = now.weekday()
+
+    hour = now.hour
+
+    # SATURDAY CLOSED
+    if weekday == 5:
+        return False
+
+    # SUNDAY BEFORE OPEN
+    if weekday == 6 and hour < 22:
+        return False
+
+    # FRIDAY AFTER CLOSE
+    if weekday == 4 and hour >= 22:
+        return False
+
+    return True
+
+# --------------------------------
 # COOLDOWN SYSTEM
 # --------------------------------
 
@@ -203,6 +229,23 @@ RSI: {signal['rsi']}
 def scan_markets():
 
     results = []
+
+    # --------------------------------
+    # MARKET CLOSED FILTER
+    # --------------------------------
+
+    if not forex_market_open():
+
+        print("FOREX MARKET CLOSED")
+
+        return [{
+
+            "market_status":
+                "CLOSED",
+
+            "message":
+                "Forex market is currently closed"
+        }]
 
     file_exists = os.path.isfile(
         SIGNALS_FILE
