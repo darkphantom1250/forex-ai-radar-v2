@@ -268,3 +268,27 @@ def run_trade_manager():
         "message":
             "Trade manager executed"
     }
+
+
+
+
+@app.get("/view-trades")
+def view_trades():
+
+    import pandas as pd
+
+    try:
+
+        df = pd.read_csv(
+            "signals.csv"
+        )
+
+        return df.to_dict(
+            orient="records"
+        )
+
+    except Exception as e:
+
+        return {
+            "error": str(e)
+        }
