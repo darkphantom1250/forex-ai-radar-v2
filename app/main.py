@@ -9,9 +9,10 @@ import requests
 import os
 
 from app.scanner import scan_markets
-from app.trade_manager import update_trade_status
+from app.trade_manager import manage_trades
 from app.analytics import get_analytics
 from app.diagnostics import get_diagnostics
+
 import pandas as pd
 
 app = FastAPI()
@@ -78,7 +79,6 @@ def ensure_signals_file():
             "signals.csv CREATED"
         )
 
-
 # -----------------------------------
 # CORS
 # -----------------------------------
@@ -105,7 +105,7 @@ def scheduled_scan():
 
     print("RUNNING AUTOMATED SCAN...")
 
-    update_trade_status()
+    manage_trades()
 
     signals = scan_markets()
 
@@ -113,11 +113,13 @@ def scheduled_scan():
 
     for signal in signals:
 
-        print(
-            signal["pair"],
-            signal["signal"],
-            signal["setup_score"]
-        )
+        if "pair" in signal:
+
+            print(
+                signal["pair"],
+                signal["signal"],
+                signal["setup_score"]
+            )
 
 # -----------------------------------
 # STARTUP
@@ -159,7 +161,8 @@ def shutdown_event():
 def root():
 
     return {
-        "message": "Forex AI Radar Backend Running"
+        "message":
+            "Forex AI Radar Backend Running"
     }
 
 # -----------------------------------
@@ -175,16 +178,13 @@ def get_signals():
 # FORCE SCAN
 # -----------------------------------
 
-
 @app.get("/force-scan")
 def force_scan():
 
     print("MANUAL FORCE SCAN")
 
-    # ALWAYS UPDATE TRADES
-    update_trade_status()
+    manage_trades()
 
-    # THEN SCAN MARKET
     signals = scan_markets()
 
     return {
@@ -256,6 +256,9 @@ def test_telegram():
             response.text
     }
 
+# -----------------------------------
+# TEST TRADE
+# -----------------------------------
 
 @app.get("/test-trade")
 def test_trade():
@@ -264,43 +267,59 @@ def test_trade():
 
     test_row = {
 
-        "signal_id": "test123",
+        "signal_id":
+            "test123",
 
         "timestamp":
             "2026-05-09T00:00:00+00:00",
 
-        "pair": "EURUSD=X",
+        "pair":
+            "EURUSD=X",
 
-        "signal": "BUY",
+        "signal":
+            "BUY",
 
-        "bias": "BULLISH",
+        "bias":
+            "BULLISH",
 
-        "setup_quality": "HIGH",
+        "setup_quality":
+            "HIGH",
 
-        "setup_score": 90,
+        "setup_score":
+            90,
 
-        "market_session": "NEW_YORK",
+        "market_session":
+            "NEW_YORK",
 
-        "rsi": 55,
+        "rsi":
+            55,
 
-        "atr_percent": 0.0005,
+        "atr_percent":
+            0.0005,
 
-        "candle_strength": 0.6,
+        "candle_strength":
+            0.6,
 
-        "execution_ready": True,
+        "execution_ready":
+            True,
 
         "execution_reason":
             "Test trade",
 
-        "entry_price": 1.1000,
+        "entry_price":
+            1.1000,
 
-        "sl": 1.0000,
+        "sl":
+            1.0000,
 
-        "tp": 1.0500,
+        "tp":
+            1.0500,
 
-        "rr": 2.0,
+        "rr":
+            2.0,
 
-        "trade_status": "OPEN"
+        "trade_status":
+            "OPEN"
     }
 
     try:
@@ -328,19 +347,23 @@ def test_trade():
             "Test trade added"
     }
 
+# -----------------------------------
+# RUN TRADE MANAGER
+# -----------------------------------
 
 @app.get("/run-trade-manager")
 def run_trade_manager():
 
-    update_trade_status()
+    manage_trades()
 
     return {
         "message":
             "Trade manager executed"
     }
 
-
-
+# -----------------------------------
+# VIEW TRADES
+# -----------------------------------
 
 @app.get("/view-trades")
 def view_trades():
