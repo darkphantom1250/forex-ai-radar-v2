@@ -1,9 +1,17 @@
 import pandas as pd
 import yfinance as yf
+import os
 
 CSV_FILE = "signals.csv"
 
 def update_trade_status():
+
+    if not os.path.exists(CSV_FILE):
+
+       print("signals.csv missing")
+
+       return
+
 
     try:
 
