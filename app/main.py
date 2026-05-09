@@ -178,3 +178,75 @@ def test_telegram():
         "response":
             response.text
     }
+
+
+@app.get("/test-trade")
+def test_trade():
+
+    import pandas as pd
+
+    test_row = {
+
+        "signal_id": "test123",
+
+        "timestamp":
+            "2026-05-09T00:00:00+00:00",
+
+        "pair": "EURUSD=X",
+
+        "signal": "BUY",
+
+        "bias": "BULLISH",
+
+        "setup_quality": "HIGH",
+
+        "setup_score": 90,
+
+        "market_session": "NEW_YORK",
+
+        "rsi": 55,
+
+        "atr_percent": 0.0005,
+
+        "candle_strength": 0.6,
+
+        "execution_ready": True,
+
+        "execution_reason":
+            "Test trade",
+
+        "entry_price": 1.1000,
+
+        "sl": 1.0000,
+
+        "tp": 1.2000,
+
+        "rr": 2.0,
+
+        "trade_status": "OPEN"
+    }
+
+    try:
+
+        df = pd.read_csv(
+            "signals.csv"
+        )
+
+    except:
+
+        df = pd.DataFrame()
+
+    df = pd.concat([
+        df,
+        pd.DataFrame([test_row])
+    ])
+
+    df.to_csv(
+        "signals.csv",
+        index=False
+    )
+
+    return {
+        "message":
+            "Test trade added"
+    }
