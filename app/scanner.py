@@ -505,7 +505,7 @@ def scan_markets():
                         2
                     )
 
-                if candle_strength > 0.55:
+                if candle_strength > 0.4:
 
                     setup_score += 20
 
@@ -595,7 +595,7 @@ def scan_markets():
 
                 if (
                     setup_score >= 75
-                    and candle_strength > 0.55
+                    and candle_strength > 0.4
                     and atr_percent > 0.0003
                     and breakout
                 ):
@@ -614,7 +614,7 @@ def scan_markets():
                             "Breakout missing"
                         )
 
-                    elif candle_strength <= 0.55:
+                    elif candle_strength <= 0.4:
 
                         execution_reason = (
                             "Weak candle"
