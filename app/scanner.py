@@ -78,7 +78,7 @@ def can_send_signal(pair, signal):
 
         last_time = data[key]
 
-        # 30 minute cooldown
+        # 30 MINUTE COOLDOWN
         if now - last_time < 1800:
 
             print(
@@ -128,9 +128,11 @@ def send_telegram_alert(signal):
         not TELEGRAM_BOT_TOKEN
         or not TELEGRAM_CHAT_ID
     ):
+
         print(
             "TELEGRAM VARIABLES MISSING"
         )
+
         return
 
     try:
@@ -168,6 +170,7 @@ RSI: {signal['rsi']}
         )
 
         payload = {
+
             "chat_id":
                 TELEGRAM_CHAT_ID,
 
@@ -415,9 +418,11 @@ def scan_markets():
                 # --------------------------------
 
                 if bullish_15m:
+
                     bias = "BULLISH"
 
                 elif bearish_15m:
+
                     bias = "BEARISH"
 
                 # --------------------------------
@@ -505,12 +510,22 @@ def scan_markets():
                         2
                     )
 
-                if candle_strength > 0.4:
+                # WEIGHTED SCORING
+
+                if candle_strength > 0.6:
 
                     setup_score += 20
 
                     reasons.append(
                         "Strong candle"
+                    )
+
+                elif candle_strength > 0.4:
+
+                    setup_score += 10
+
+                    reasons.append(
+                        "Moderate candle"
                     )
 
                 else:
@@ -595,7 +610,7 @@ def scan_markets():
 
                 if (
                     setup_score >= 75
-                    and candle_strength > 0.4
+                    and candle_strength > 0.35
                     and atr_percent > 0.0003
                     and breakout
                 ):
@@ -614,7 +629,7 @@ def scan_markets():
                             "Breakout missing"
                         )
 
-                    elif candle_strength <= 0.4:
+                    elif candle_strength <= 0.35:
 
                         execution_reason = (
                             "Weak candle"
@@ -639,20 +654,22 @@ def scan_markets():
                 if execution_ready:
 
                     if bullish_15m:
+
                         signal = "BUY"
 
                     elif bearish_15m:
+
                         signal = "SELL"
 
                 # --------------------------------
                 # QUALITY
                 # --------------------------------
 
-                if setup_score >= 80:
+                if setup_score >= 85:
 
                     setup_quality = "HIGH"
 
-                elif setup_score >= 60:
+                elif setup_score >= 65:
 
                     setup_quality = "MEDIUM"
 
