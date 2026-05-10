@@ -5,7 +5,8 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 from app.database import (
     init_db,
-    get_all_trades
+    get_all_trades,
+    insert_trade
 )
 
 import requests
@@ -280,8 +281,6 @@ def test_telegram():
 @app.get("/test-trade")
 def test_trade():
 
-    import pandas as pd
-
     test_row = {
 
         "signal_id":
@@ -339,30 +338,12 @@ def test_trade():
             "OPEN"
     }
 
-    try:
-
-        df = pd.read_csv(
-            "signals.csv"
-        )
-
-    except:
-
-        df = pd.DataFrame()
-
-    df = pd.concat([
-        df,
-        pd.DataFrame([test_row])
-    ])
-
-    df.to_csv(
-        "signals.csv",
-        index=False
-    )
+    insert_trade(test_row)
 
     return {
 
         "message":
-            "Test trade added"
+            "Test trade added to SQLite"
     }
 
 # -----------------------------------
