@@ -1,7 +1,6 @@
-import pandas as pd
-import os
-
-TRADE_FILE = "signals.csv"
+from app.database import (
+    get_all_trades
+)
 
 # --------------------------------
 # ANALYTICS ENGINE
@@ -9,60 +8,26 @@ TRADE_FILE = "signals.csv"
 
 def get_analytics():
 
-    # --------------------------------
-    # NO FILE
-    # --------------------------------
+    trades = get_all_trades()
 
-    if not os.path.exists(TRADE_FILE):
+    if not trades:
 
         return {
+
             "total_trades": 0,
+
             "wins": 0,
+
             "losses": 0,
+
             "win_rate": 0,
+
             "active_trades": 0,
+
             "profit_factor": 0,
+
             "avg_rr": 0,
-            "best_pair": "-"
-        }
 
-    # --------------------------------
-    # LOAD CSV
-    # --------------------------------
-
-    try:
-
-        df = pd.read_csv(TRADE_FILE)
-
-    except Exception as e:
-
-        print("ANALYTICS CSV ERROR:", e)
-
-        return {
-            "total_trades": 0,
-            "wins": 0,
-            "losses": 0,
-            "win_rate": 0,
-            "active_trades": 0,
-            "profit_factor": 0,
-            "avg_rr": 0,
-            "best_pair": "-"
-        }
-
-    # --------------------------------
-    # EMPTY
-    # --------------------------------
-
-    if df.empty:
-
-        return {
-            "total_trades": 0,
-            "wins": 0,
-            "losses": 0,
-            "win_rate": 0,
-            "active_trades": 0,
-            "profit_factor": 0,
-            "avg_rr": 0,
             "best_pair": "-"
         }
 
@@ -70,31 +35,36 @@ def get_analytics():
     # CLOSED TRADES
     # --------------------------------
 
-    closed = df[
-        df["trade_status"].isin(
-            ["WIN", "LOSS"]
-        )
+    closed = [
+
+        trade for trade in trades
+
+        if trade["trade_status"]
+        in ["WIN", "LOSS"]
     ]
 
     total_trades = len(closed)
 
-    wins = len(
-        closed[
-            closed["trade_status"] == "WIN"
-        ]
-    )
+    wins = len([
 
-    losses = len(
-        closed[
-            closed["trade_status"] == "LOSS"
-        ]
-    )
+        t for t in closed
 
-    active_trades = len(
-        df[
-            df["trade_status"] == "OPEN"
-        ]
-    )
+        if t["trade_status"] == "WIN"
+    ])
+
+    losses = len([
+
+        t for t in closed
+
+        if t["trade_status"] == "LOSS"
+    ])
+
+    active_trades = len([
+
+        t for t in trades
+
+        if t["trade_status"] == "OPEN"
+    ])
 
     # --------------------------------
     # WIN RATE
@@ -115,35 +85,33 @@ def get_analytics():
     # AVG RR
     # --------------------------------
 
-    avg_rr = 0
+    rr_values = [
 
-    if "rr" in closed.columns:
+        float(t["rr"])
 
-        rr_values = (
-            closed["rr"]
-            .dropna()
+        for t in closed
+
+        if t["rr"] is not None
+    ]
+
+    if rr_values:
+
+        avg_rr = round(
+            sum(rr_values)
+            / len(rr_values),
+            2
         )
 
-        if not rr_values.empty:
+    else:
 
-            try:
-
-                avg_rr = round(
-                    float(
-                        rr_values.mean()
-                    ),
-                    2
-                )
-
-            except Exception:
-
-                avg_rr = 0
+        avg_rr = 0
 
     # --------------------------------
     # PROFIT FACTOR
     # --------------------------------
 
     gross_profit = wins * avg_rr
+
     gross_loss = losses * 1
 
     if gross_loss > 0:
@@ -163,37 +131,42 @@ def get_analytics():
 
     pair_stats = {}
 
-    if not closed.empty:
+    for trade in closed:
 
-        for pair in closed["pair"].unique():
+        pair = trade["pair"]
 
-            pair_df = closed[
-                closed["pair"] == pair
-            ]
+        if pair not in pair_stats:
 
-            pair_wins = len(
-                pair_df[
-                    pair_df["trade_status"] == "WIN"
-                ]
-            )
+            pair_stats[pair] = {
 
-            pair_total = len(pair_df)
+                "wins": 0,
+                "total": 0
+            }
 
-            if pair_total > 0:
+        pair_stats[pair]["total"] += 1
 
-                pair_stats[pair] = round(
-                    (pair_wins / pair_total) * 100,
-                    2
-                )
+        if trade["trade_status"] == "WIN":
+
+            pair_stats[pair]["wins"] += 1
 
     best_pair = "-"
 
-    if pair_stats:
+    best_rate = 0
 
-        best_pair = max(
-            pair_stats,
-            key=pair_stats.get
-        )
+    for pair, stats in pair_stats.items():
+
+        if stats["total"] > 0:
+
+            rate = (
+                stats["wins"]
+                / stats["total"]
+            ) * 100
+
+            if rate > best_rate:
+
+                best_rate = rate
+
+                best_pair = pair
 
     # --------------------------------
     # FINAL RESPONSE
@@ -201,19 +174,27 @@ def get_analytics():
 
     return {
 
-        "total_trades": int(total_trades),
+        "total_trades":
+            total_trades,
 
-        "wins": int(wins),
+        "wins":
+            wins,
 
-        "losses": int(losses),
+        "losses":
+            losses,
 
-        "win_rate": float(win_rate),
+        "win_rate":
+            win_rate,
 
-        "active_trades": int(active_trades),
+        "active_trades":
+            active_trades,
 
-        "profit_factor": float(profit_factor),
+        "profit_factor":
+            profit_factor,
 
-        "avg_rr": float(avg_rr),
+        "avg_rr":
+            avg_rr,
 
-        "best_pair": best_pair
+        "best_pair":
+            best_pair
     }
