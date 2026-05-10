@@ -202,3 +202,29 @@ def update_trade_status(
     conn.commit()
 
     conn.close()
+
+# --------------------------------
+# GET ALL TRADES
+# --------------------------------
+
+def get_all_trades():
+
+    conn = get_connection()
+
+    cursor = conn.cursor()
+
+    cursor.execute(
+        '''
+        SELECT * FROM trades
+        ORDER BY id DESC
+        '''
+    )
+
+    rows = cursor.fetchall()
+
+    conn.close()
+
+    return [
+        dict(row)
+        for row in rows
+    ]

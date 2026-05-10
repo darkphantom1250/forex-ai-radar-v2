@@ -3,17 +3,19 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from apscheduler.schedulers.background import BackgroundScheduler
 
-from app.database import init_db
+from app.database import (
+    init_db,
+    get_all_trades
+)
 
 import requests
 import os
+import pandas as pd
 
 from app.scanner import scan_markets
 from app.trade_manager import manage_trades
 from app.analytics import get_analytics
 from app.diagnostics import get_diagnostics
-
-import pandas as pd
 
 app = FastAPI()
 
@@ -103,13 +105,17 @@ scheduler = BackgroundScheduler()
 
 def scheduled_scan():
 
-    print("RUNNING AUTOMATED SCAN...")
+    print(
+        "RUNNING AUTOMATED SCAN..."
+    )
 
     manage_trades()
 
     signals = scan_markets()
 
-    print("SCAN COMPLETE")
+    print(
+        "SCAN COMPLETE"
+    )
 
     for signal in signals:
 
@@ -132,7 +138,9 @@ def startup_event():
 
     init_db()
 
-    print("STARTING SCHEDULER...")
+    print(
+        "STARTING SCHEDULER..."
+    )
 
     scheduler.add_job(
         scheduled_scan,
@@ -142,7 +150,9 @@ def startup_event():
 
     scheduler.start()
 
-    print("SCHEDULER STARTED")
+    print(
+        "SCHEDULER STARTED"
+    )
 
 # -----------------------------------
 # SHUTDOWN
@@ -161,6 +171,7 @@ def shutdown_event():
 def root():
 
     return {
+
         "message":
             "Forex AI Radar Backend Running"
     }
@@ -181,7 +192,9 @@ def get_signals():
 @app.get("/force-scan")
 def force_scan():
 
-    print("MANUAL FORCE SCAN")
+    print(
+        "MANUAL FORCE SCAN"
+    )
 
     manage_trades()
 
@@ -242,8 +255,12 @@ def test_telegram():
     response = requests.post(
         url,
         json={
-            "chat_id": chat_id,
-            "text": message
+
+            "chat_id":
+                chat_id,
+
+            "text":
+                message
         }
     )
 
@@ -343,6 +360,7 @@ def test_trade():
     )
 
     return {
+
         "message":
             "Test trade added"
     }
@@ -357,6 +375,7 @@ def run_trade_manager():
     manage_trades()
 
     return {
+
         "message":
             "Trade manager executed"
     }
@@ -368,20 +387,4 @@ def run_trade_manager():
 @app.get("/view-trades")
 def view_trades():
 
-    import pandas as pd
-
-    try:
-
-        df = pd.read_csv(
-            "signals.csv"
-        )
-
-        return df.to_dict(
-            orient="records"
-        )
-
-    except Exception as e:
-
-        return {
-            "error": str(e)
-        }
+    return get_all_trades()
